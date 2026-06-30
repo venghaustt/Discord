@@ -25,7 +25,7 @@ headers = {
 }
 
 params = {
-    "symbol": "ADA",
+    "symbol": "SOL",
     "convert": "USD",
 }
 
