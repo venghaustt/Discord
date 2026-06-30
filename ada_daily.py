@@ -4,84 +4,77 @@ from datetime import datetime, timezone
 import requests
 
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+CMC_API_KEY = os.getenv("CMC_API_KEY")
 
 if not WEBHOOK_URL:
     raise RuntimeError("DISCORD_WEBHOOK_URL secret is missing.")
 
-# If the webhook URL accidentally ends with /github or /slack,
-# convert it back to a standard Discord webhook.
+if not CMC_API_KEY:
+    raise RuntimeError("CMC_API_KEY secret is missing.")
+
 if WEBHOOK_URL.endswith("/github"):
     WEBHOOK_URL = WEBHOOK_URL[:-7]
 elif WEBHOOK_URL.endswith("/slack"):
     WEBHOOK_URL = WEBHOOK_URL[:-6]
 
-url = "https://api.coingecko.com/api/v3/simple/price"
+url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
 
-params = {
-    "ids": "cardano",
-    "vs_currencies": "usd",
-    "include_24hr_change": "true",
-    "include_market_cap": "true",
-    "include_24hr_vol": "true"
+headers = {
+    "Accepts": "application/json",
+    "X-CMC_PRO_API_KEY": CMC_API_KEY,
 }
 
-response = requests.get(url, params=params, timeout=15)
+params = {
+    "symbol": "ADA",
+    "convert": "USD",
+}
+
+response = requests.get(url, headers=headers, params=params, timeout=15)
 response.raise_for_status()
 
-data = response.json()["cardano"]
+data = response.json()["data"]["ADA"]
+quote = data["quote"]["USD"]
 
-price = data["usd"]
-change = data["usd_24h_change"]
-market_cap = data["usd_market_cap"]
-volume = data["usd_24h_vol"]
+name = data["name"]
+symbol = data["symbol"]
+rank = data["cmc_rank"]
 
-status = "🟢 Bullish" if change >= 0 else "🔴 Bearish"
+price = quote["price"]
+change_24h = quote["percent_change_24h"]
+change_7d = quote["percent_change_7d"]
+market_cap = quote["market_cap"]
+volume_24h = quote["volume_24h"]
+
+status = "🟢 Bullish" if change_24h >= 0 else "🔴 Bearish"
 
 payload = {
     "content": "💠 **ADA Daily Crypto Report**",
     "embeds": [
         {
-            "title": "Cardano (ADA)",
+            "title": f"{name} ({symbol})",
+            "description": "Powered by CoinMarketCap data.",
             "color": 3447003,
             "fields": [
-                {
-                    "name": "Current Price",
-                    "value": f"${price:,.4f}",
-                    "inline": True
-                },
-                {
-                    "name": "24H Change",
-                    "value": f"{change:+.2f}%",
-                    "inline": True
-                },
-                {
-                    "name": "Status",
-                    "value": status,
-                    "inline": True
-                },
-                {
-                    "name": "Market Cap",
-                    "value": f"${market_cap:,.0f}",
-                    "inline": False
-                },
-                {
-                    "name": "24H Volume",
-                    "value": f"${volume:,.0f}",
-                    "inline": False
-                }
+                {"name": "Current Price", "value": f"${price:,.4f}", "inline": True},
+                {"name": "24H Change", "value": f"{change_24h:+.2f}%", "inline": True},
+                {"name": "7D Change", "value": f"{change_7d:+.2f}%", "inline": True},
+                {"name": "Market Rank", "value": f"#{rank}", "inline": True},
+                {"name": "Market Cap", "value": f"${market_cap:,.0f}", "inline": False},
+                {"name": "24H Volume", "value": f"${volume_24h:,.0f}", "inline": False},
+                {"name": "Status", "value": status, "inline": False},
+                {"name": "Note", "value": "Not financial advice. Build patiently.", "inline": False},
             ],
             "footer": {
                 "text": "Updated " + datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-            }
+            },
         }
-    ]
+    ],
+    "allowed_mentions": {"parse": []},
 }
 
 discord = requests.post(WEBHOOK_URL, json=payload, timeout=15)
 
 if discord.status_code >= 400:
-    raise RuntimeError(
-        f"Discord returned {discord.status_code}: {discord.text}"
-    )
+    raise RuntimeError(f"Discord returned {discord.status_code}: {discord.text}")
 
 print("ADA report sent successfully.")
