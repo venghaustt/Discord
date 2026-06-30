@@ -48,7 +48,7 @@ volume_24h = quote["volume_24h"]
 status = "🟢 Bullish" if change_24h >= 0 else "🔴 Bearish"
 
 payload = {
-    "content": "💠 **ADA Daily Crypto Report**",
+   "content": "☀️ **SOL Daily Crypto Report**",
     "embeds": [
         {
             "title": f"{name} ({symbol})",
