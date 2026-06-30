@@ -32,7 +32,7 @@ params = {
 response = requests.get(url, headers=headers, params=params, timeout=15)
 response.raise_for_status()
 
-data = response.json()["data"]["ADA"]
+data = response.json()["data"]["SOL"]
 quote = data["quote"]["USD"]
 
 name = data["name"]
