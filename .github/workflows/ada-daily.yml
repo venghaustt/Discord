@@ -2,6 +2,7 @@ name: Daily ADA Discord Report
 
 on:
   schedule:
+    # Runs every day at 14:00 UTC (9:00 AM CDT / 8:00 AM CST)
     - cron: "0 14 * * *"
   workflow_dispatch:
 
@@ -28,8 +29,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Send ADA report to Discord
-        run: python ada_daily.py
+      - name: Verify repository secrets
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "❌ DISCORD_WEBHOOK_URL is missing."
+            exit 1
+          fi
+
+          if [ -z "$CMC_API_KEY" ]; then
+            echo "❌ CMC_API_KEY is missing."
+            exit 1
+          fi
+
+          echo "✅ Repository secrets found."
+
+      - name: Send ADA report to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
+        run: python ada_daily.py
