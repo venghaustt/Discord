@@ -77,4 +77,4 @@ discord = requests.post(WEBHOOK_URL, json=payload, timeout=15)
 if discord.status_code >= 400:
     raise RuntimeError(f"Discord returned {discord.status_code}: {discord.text}")
 
-print("ADA report sent successfully.")
+print("SOL report sent successfully.")
